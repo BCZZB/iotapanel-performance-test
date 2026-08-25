@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>性能测试</title>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#fff; --line:#e3e8ef; --txt:#1f2430; --sub:#6b7280;
+  --pri:#3b7cff; --pri2:#2563eb; --ok:#16a34a; --warn:#ea580c; --err:#dc2626;
+  --chip:#eef2ff; --grad:linear-gradient(135deg,#3b7cff,#7c3aed);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);padding:20px}
+.wrap{max-width:960px;margin:0 auto}
+.head{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.logo{width:42px;height:42px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;box-shadow:0 6px 16px rgba(59,124,255,.3)}
+.head h1{font-size:22px;font-weight:700}
+.head .tag{background:var(--chip);color:var(--pri2);font-size:12px;padding:3px 10px;border-radius:20px;font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 2px 6px rgba(20,30,60,.04)}
+.hw{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:6px}
+.hw .it{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.hw .it b{display:block;font-size:15px;color:var(--txt)}
+.hw .it span{font-size:11px;color:var(--sub)}
+.btnrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.btn{border:none;border-radius:10px;padding:12px 26px;font-size:15px;font-weight:600;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--grad);color:#fff;box-shadow:0 6px 14px rgba(59,124,255,.3)}
+.btn.primary:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.btn.primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.ghost{background:#fff;color:var(--sub);border:1px solid var(--line)}
+.btn.danger{background:#fef2f2;color:var(--err);border:1px solid #fecaca}
+.bar{height:10px;background:#eef0f4;border-radius:6px;overflow:hidden;margin-top:12px}
+.bar>div{height:100%;background:var(--grad);width:0;border-radius:6px;transition:width .4s}
+.ptext{font-size:12px;color:var(--sub);margin-top:8px;display:flex;justify-content:space-between}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+.stat h3{font-size:13px;color:var(--sub);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.stat .v{font-size:26px;font-weight:700;color:var(--txt)}
+.stat .u{font-size:12px;color:var(--sub);margin-left:4px;font-weight:500}
+.stat .d{font-size:11px;color:var(--sub);margin-top:4px}
+.total{background:var(--grad);color:#fff;border-radius:14px;padding:22px;text-align:center}
+.total .v{font-size:52px;font-weight:800;letter-spacing:1px}
+.total .l{font-size:13px;opacity:.9;margin-top:2px}
+.rank{font-size:14px;font-weight:600;margin-top:8px}
+.rank .star{letter-spacing:2px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--sub);font-weight:600;padding:8px 10px;border-bottom:2px solid var(--line)}
+td{padding:8px 10px;border-bottom:1px solid var(--line)}
+td .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+.muted{color:var(--sub)}
+.state{font-size:12px;padding:3px 10px;border-radius:20px;font-weight:600}
+.state.ok{background:#ecfdf5;color:var(--ok)}
+.state.run{background:#eff6ff;color:var(--pri2);animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.empty{color:var(--sub);text-align:center;padding:20px;font-size:13px}
+@media(max-width:600px){.stat .v{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="logo">⚡</div>
+    <h1>性能测试</h1>
+    <span class="tag">一键跑分 · 宝塔风格</span>
+  </div>
+
+  <!-- 硬件信息 -->
+  <div class="card">
+    <div class="hw" id="hw">加载中…</div>
+  </div>
+
+  <!-- 操作 -->
+  <div class="card">
+    <div class="btnrow">
+      <button class="btn primary" id="runBtn" onclick="startRun()">▶ 开始完整性能测试</button>
+      <button class="btn danger" id="cancelBtn" onclick="cancelRun()" style="display:none">停止</button>
+    </div>
+    <div id="prog" style="display:none">
+      <div class="bar"><div id="pfill"></div></div>
+      <div class="ptext"><span id="pstage">准备…</span><span id="ppercent">0%</span></div>
+    </div>
+  </div>
+
+  <!-- 最近结果 -->
+  <div id="resultWrap" style="display:none"></div>
+
+  <!-- 历史 -->
+  <div class="card">
+    <h2 style="font-size:16px;margin-bottom:12px">测试历史</h2>
+    <table>
+      <thead><tr><th>时间</th><th>CPU</th><th>内存</th><th>磁盘</th><th>总分</th><th>状态</th></tr></thead>
+      <tbody id="histBody"><tr><td colspan="6" class="empty">暂无记录</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// 面板网关以 /p/<插件名>/ 前缀挂载；API 基于页面所在路径解析，兼容任意前缀。
+var __base = location.pathname + (location.pathname.endsWith('/') ? '' : '/');
+async function j(path, opts){ const r=await fetch(__base + path.replace(/^\//,''), opts); const d=await r.json(); if(!d.ok) throw new Error(d.error||"请求失败"); return d.data; }
+
+// 硬件信息
+(async function loadHW(){
+  try{
+    const d=await j('/api/meta');
+    document.getElementById('hw').innerHTML =
+      hwItem('🧠', d.name, '插件'),
+      ['💻','CPU',d.cores+' 核'], ['🧩','内存',(d.totalMemMB|0)+' MB'];
+    function hwItem(icon,label,val){return '<div class="it"><b>'+icon+' '+label+'</b><span>'+val+'</span></div>'};
+  }catch(e){ document.getElementById('hw').innerHTML='<span class="muted">无法获取硬件信息</span>'; }
+})();
+
+let timer=null;
+function startRun(){
+  const b=document.getElementById('runBtn');
+  b.disabled=true; b.textContent='⏳ 正在跑分…';
+  document.getElementById('cancelBtn').style.display='';
+  document.getElementById('prog').style.display='';
+  setStage(2,'初始化');
+  j('/api/bench',{method:'POST'}).then(d=>{ poll(); }).catch(e=>{ alert(e.message); resetBtn(); });
+}
+function cancelRun(){
+  j('/api/cancel',{method:'POST'}).catch(()=>{});
+  document.getElementById('cancelBtn').disabled=true;
+  setStage(90,'正在停止…');
+}
+function setStage(p,txt){ document.getElementById('pfill').style.width=p+'%'; document.getElementById('pstage').textContent=txt; document.getElementById('ppercent').textContent=p+'%'; }
+function poll(){
+  clearTimeout(timer);
+  j('/api/status').then(d=>{
+    if(!d || !d.running){
+      // 可能已完成，读取历史最新
+      loadResult();
+      return;
+    }
+    setStage(d.progress, d.stage);
+    if(d.finished){ loadResult(); return; }
+    timer=setTimeout(poll,700);
+  }).catch(()=>{ timer=setTimeout(poll,1500); });
+}
+function loadResult(){
+  j('/api/history').then(hist=>{
+    if(hist && hist.length){ renderResult(hist[hist.length-1]); renderHist(hist); }
+    resetBtn();
+    document.getElementById('cancelBtn').style.display='none';
+  }).catch(()=>{ resetBtn(); });
+}
+function resetBtn(){
+  const b=document.getElementById('runBtn');
+  b.disabled=false; b.textContent='▶ 开始完整性能测试';
+  document.getElementById('cancelBtn').disabled=false;
+  setTimeout(()=>{ document.getElementById('prog').style.display='none'; },600);
+}
+
+function star(score){
+  // 依据宝塔风格总分给星级
+  if(score>=120000) return '★★★★★ 旗舰级';
+  if(score>=60000) return '★★★★☆ 高性能';
+  if(score>=25000) return '★★★☆☆ 良好';
+  if(score>=10000) return '★★☆☆☆ 一般';
+  return '★☆☆☆☆ 入门';
+}
+
+function renderResult(r){
+  const total=r.combine.total|0;
+  const c=r.combine.cpu|0, m=r.combine.mem|0, d=r.combine.disk|0;
+  document.getElementById('resultWrap').style.display='';
+  document.getElementById('resultWrap').innerHTML=''+
+    '<div class="total"><div class="l">综合性能评分</div><div class="v">'+total.toLocaleString()+'</div>'+
+    '<div class="rank"><span class="star">'+star(total).split(' ')[0]+'</span> '+star(total).split(' ')[1]+'</div></div>'+
+    '<div class="grid" style="margin-top:14px">'+
+      stat('⚙️ 处理器 (CPU)',c.toLocaleString(),'', '整数 '+fmt(cpuF(r,'int_mops'))+'M + 浮点 '+fmt(cpuF(r,'float_mops'))+'M + π 迭代 '+fmt(cpuF(r,'pi_miter'))+'M/s')+
+      stat('🧩 内存 (MEM)',fmt(r.mem.read_mbps)+' MB/s', '', '读 '+fmt(r.mem.read_mbps)+' / 写 '+fmt(r.mem.write_mbps)+' MB/s')+
+      stat('💾 磁盘 (DISK)',d.toLocaleString(), '', '顺序读 '+fmt(r.disk.seq_read_mbps)+' / 写 '+fmt(r.disk.seq_write_mbps)+' MB/s · 4K IOPS 读 '+fmt(r.disk.rand4k_read_iops)+' / 写 '+fmt(r.disk.rand4k_write_iops))+
+    '</div>'+
+    '<div class="card" style="margin-top:14px"><div class="hw">'+
+      hwItem('⏱', '测试时间', r.started_at||'')+
+      hwItem('💻', 'CPU', (r.hardware&&r.hardware.cpu)||'-')+
+      hwItem('🧩', '核心数', (r.hardware&&r.hardware.cores||0)+' 核 · '+(r.hardware&&r.hardware.arch||''))+
+      hwItem('📀', '内存', (r.hardware&&r.hardware.mem_total_mb||0)+' MB')+
+    '</div></div>';
+  function stat(t,v,u,desc){ return '<div class="stat"><h3>'+t+'</h3><div class="v">'+v+'<span class="u">'+u+'</span></div><div class="d">'+desc+'</div></div>'; }
+  function hwItem(ic,l,v){ return '<div class="it"><b>'+ic+' '+l+'</b><span>'+v+'</span></div>'; }
+}
+function cpuF(r,k){ return (r.cpu&&r.cpu[k])? (r.cpu[k]) : 0; }
+function fmt(n){ if(!isFinite(n)) return '0'; return (Math.round(n*10)/10); }
+
+function renderHist(hist){
+  const tb=document.getElementById('histBody');
+  if(!hist.length){ tb.innerHTML='<tr><td colspan="6" class="empty">暂无记录</td></tr>'; return; }
+  tb.innerHTML=hist.slice().reverse().map(r=>{
+    const t=r.combine.total|0;
+    const st=r.error? '<span class="state" style="background:#fef2f2;color:var(--err)">异常</span>'
+      : (r.finished? '<span class="state ok">完成</span>':'<span class="state run">进行中</span>');
+    return '<tr><td class="mono">'+esc(r.started_at||'')+'</td>'+
+      '<td>'+fmtNum(r.combine.cpu)+'</td><td>'+fmtNum(r.combine.mem)+'</td>'+
+      '<td>'+fmtNum(r.combine.disk)+'</td><td><b>'+t.toLocaleString()+'</b></td><td>'+st+'</td></tr>';
+  }).join('');
+}
+function fmtNum(n){ n=n||0; return (Math.round(n)).toLocaleString(); }
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// 启动时加载历史
+loadResult();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# 性能测试插件 —— IotaPanel 一键跑分（宝塔风格）
+name: performance-test
+title: 性能测试
+version: 1.0.0
+author: BCZZB
+description: 一键完整性能测试（宝塔风格跑分）：CPU 整数/浮点/圆周率基准、内存读写带宽、磁盘顺序与 4K 随机 IOPS，输出综合评分与星级，历史成绩可回溯。纯 Go 零依赖，按需运行，常驻约 5MB。
+language: go
+command: bin/performance-test
+bind: 127.0.0.1
+keepalive: true
+menus:
+  - title: 性能测试
+    icon: ⚡
+    path: /
+    section: system
